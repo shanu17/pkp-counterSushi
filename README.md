@@ -4,7 +4,7 @@ This plugin provides the NISO COUNTER-SUSHI Release 5 - RESTful API implementati
 
 ## Requirements
 
-
+* OJS 3.2 or later
 
 ## Installation
 
