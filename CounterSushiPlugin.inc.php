@@ -112,11 +112,11 @@ class CounterSushiPlugin extends GenericPlugin{
 		if (!$request->getContext()) {
 			return $response->withStatus(404)->withJsonError('api.404.resourceNotFound');
 		}
-		if(!isset($slimRequest->getQueryParams()['customer_id'])) {
+		if (!isset($slimRequest->getQueryParams()['customer_id'])) {
 			$error = $this->createError(1030, COUNTER_SUSHI_ERROR_SEVERITY_FATAL, 'Insufficient Information to Process Request');
 			return $response->withStatus(400)->withJsonError($error);
 		}
-		if($slimRequest->getQueryParams()['customer_id'] !== 'anonymous') {
+		if ($slimRequest->getQueryParams()['customer_id'] !== 'anonymous') {
 			$error = $this->createError(2010, COUNTER_SUSHI_ERROR_SEVERITY_ERROR, 'Requestor is Not Authorized to Access Usage for Institution');
 			return $response->withStatus(403)->withJsonError($error);
 		}
@@ -125,8 +125,15 @@ class CounterSushiPlugin extends GenericPlugin{
 			case 'reports':
 				$availableReports = $this->getReports();
 				$formattedReports = array();
-				foreach($availableReports as $ar)
-					$formattedReports[] = array('Report_Name' => '...', 'Report_ID' => strtoupper($ar), 'Release' => 5, 'Report_Description' => '...', 'Path' => '/reports/' . $ar);
+				foreach($availableReports as $ar) {
+					$formattedReports[] = array(
+						'Report_Name' => '...',
+						'Report_ID' => strtoupper($ar),
+						'Release' => 5,
+						'Report_Description' => '...',
+						'Path' => '/reports/' . $ar,
+					);
+				}
 				return $response->withJson(
 					$formattedReports					
 				);
@@ -145,15 +152,16 @@ class CounterSushiPlugin extends GenericPlugin{
 					];
 					$requestParams = array_merge($defaultParams, $query);
 					$args = $this->parseParams($requestParams);
-					if(isset($args['error'])) {
+					if (isset($args['error'])) {
 						return $response->withStatus(400)->withJsonError($args['error']);
 					} else {
 						$class = 'CounterReport' . strtoupper($report);
 						import('plugins.generic.counterSushi.reports.' . $class);
 						$reportFilters = array();
-						foreach($args as $x => $xValue) {
-							if($x == 'assocTypes')
+						foreach ($args as $x => $xValue) {
+							if ($x == 'assocTypes') {
 								continue;
+							}
 							$filter = array('Name' => $x, 'Value' => $xValue);
 							$reportFilters[] = $filter; 
 						}
@@ -187,8 +195,9 @@ class CounterSushiPlugin extends GenericPlugin{
 		$supportedFormats = ['Y', 'Y-m', 'Y-m-d'];
 		foreach ($supportedFormats as $format) {
 			$d = DateTime::createFromFormat($format, $date);
-			if($d && $d->format($format) === $date)
+			if ($d && $d->format($format) === $date) {
 				return $format;
+			}
 		}
 		return null;
 	}
@@ -201,7 +210,7 @@ class CounterSushiPlugin extends GenericPlugin{
 	public function getReports() {
 		$reportsPath = $this->getPluginPath() . DIRECTORY_SEPARATOR . 'reports';
 		$reportFiles = preg_grep('/^CounterReport/', scandir($reportsPath));
-		if($reportFiles) {
+		if ($reportFiles) {
 			foreach ($reportFiles as &$rf) {
 				$rf = str_split(explode('.', strtolower($rf))[0], 13)[1]; 
 			}
@@ -218,7 +227,7 @@ class CounterSushiPlugin extends GenericPlugin{
 	 * @return mixed Array of parsed parameters ready to be sent to the Counter report or error
 	 */
 	public function parseParams($requestParams) {
-		if(empty($requestParams['begin_date']) || empty($requestParams['end_date'])) {
+		if (empty($requestParams['begin_date']) || empty($requestParams['end_date'])) {
 			return $args = [
 				'error' => $this->createError(3070, COUNTER_SUSHI_ERROR_SEVERITY_ERROR, 'Required ReportFilter Missing'),
 			];
@@ -248,6 +257,15 @@ class CounterSushiPlugin extends GenericPlugin{
 		];
 	}
 	
+	/**
+	 * create a COUNTER SUSHI error object
+	 * @param int $number Error number assigned by NISO
+	 * @param int $severity Constants defined
+	 * @param string $message Error message to  be displayed
+	 * @param string $helpUrl optional Refer to https://app.swaggerhub.com/apis/COUNTER/counter-sushi_5_0_api/1.0.0#/SUSHI_error_model
+	 * @param string $data optional Refer to https://app.swaggerhub.com/apis/COUNTER/counter-sushi_5_0_api/1.0.0#/SUSHI_error_model
+	 * @return array Error object
+	 */
 	public function createError($number, $severity, $message = '', $helpUrl = NULL, $data = NULL) {
 		$severityString = '';
 		switch ($severity) {
@@ -262,6 +280,10 @@ class CounterSushiPlugin extends GenericPlugin{
 				break;
 			case COUNTER_SUSHI_ERROR_SEVERITY_FATAL:
 				$severityString = 'Fatal';
+				break;
+			default:
+				$severityString = 'Unknown';
+				break;
 		}
 		$error = array('Code' => $number, 'Severity' => $severityString, 'Message' => $message, 'Help_URL' => $helpUrl, 'Data' => $data);
 		return $error;
